@@ -1,0 +1,101 @@
+# ============================================================================
+# ApertoDNS Updater - Docker Compose Configuration
+# ============================================================================
+# Production-ready configuration with security hardening
+#
+# Quick Start:
+#   1. Copy .env.example to .env and edit with your values
+#   2. Run: docker compose up -d
+#   3. Check logs: docker compose logs -f
+#
+# For more examples, see README.md
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # ApertoDNS DDNS Updater Service
+  # ---------------------------------------------------------------------------
+  apertodns-updater:
+    image: apertodns/updater:latest
+    container_name: apertodns-updater
+
+    # Restart policy: always restart unless explicitly stopped
+    restart: unless-stopped
+
+    # Environment variables from .env file
+    env_file:
+      - .env
+
+    # Alternative: inline environment variables (uncomment to use)
+    # environment:
+    #   - TOKEN=${TOKEN}
+    #   - DOMAINS=${DOMAINS}
+    #   - UPDATE_INTERVAL=${UPDATE_INTERVAL:-300}
+    #   - DETECT_IPV6=${DETECT_IPV6:-false}
+    #   - LOG_LEVEL=${LOG_LEVEL:-info}
+    #   - TZ=${TZ:-UTC}
+
+    # Volume for IP cache persistence
+    # Prevents unnecessary updates after container restart
+    volumes:
+      - apertodns_data:/app/data
+
+    # ---------------------------------------------------------------------------
+    # Security Hardening
+    # ---------------------------------------------------------------------------
+
+    # Run with read-only filesystem (data volume is writable)
+    read_only: true
+
+    # Prevent privilege escalation
+    security_opt:
+      - no-new-privileges:true
+
+    # Drop all capabilities (none needed for HTTP client)
+    cap_drop:
+      - ALL
+
+    # Resource limits (minimal footprint)
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+          cpus: '0.1'
+        reservations:
+          memory: 8M
+          cpus: '0.01'
+
+    # Health check (built into image, but can be customized here)
+    # healthcheck:
+    #   test: ["CMD", "sh", "-c", "[ -f /app/data/last_update ]"]
+    #   interval: 60s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
+
+    # Network configuration
+    networks:
+      - apertodns
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# ---------------------------------------------------------------------------
+# Named Volumes
+# ---------------------------------------------------------------------------
+volumes:
+  apertodns_data:
+    name: apertodns_updater_data
+
+# ---------------------------------------------------------------------------
+# Networks
+# ---------------------------------------------------------------------------
+networks:
+  apertodns:
+    name: apertodns

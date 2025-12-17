@@ -1,0 +1,142 @@
+# ============================================================================
+# ApertoDNS CLI - Docker Compose Configuration
+# ============================================================================
+# Multiple service definitions for different CLI operations
+#
+# Usage Examples:
+#   docker compose run --rm setup        # Interactive setup
+#   docker compose run --rm domains      # List domains
+#   docker compose run --rm force        # Force update
+#   docker compose run --rm dashboard    # Show dashboard
+#   docker compose run --rm cli --help   # Any CLI command
+#
+# For more examples, see README.md
+# ============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Interactive Setup (run once to configure)
+  # Usage: docker compose run --rm setup
+  # ---------------------------------------------------------------------------
+  setup:
+    image: apertodns/cli:latest
+    container_name: apertodns-setup
+    stdin_open: true   # Required for interactive input
+    tty: true          # Required for interactive prompts
+    volumes:
+      - apertodns_config:/root/.config/apertodns
+    command: ["--setup"]
+    # Security (relaxed for interactive mode)
+    security_opt:
+      - no-new-privileges:true
+
+  # ---------------------------------------------------------------------------
+  # List Domains
+  # Usage: docker compose run --rm domains
+  # ---------------------------------------------------------------------------
+  domains:
+    image: apertodns/cli:latest
+    container_name: apertodns-domains
+    volumes:
+      - apertodns_config:/root/.config/apertodns
+    command: ["--domains"]
+    # Security hardening
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ---------------------------------------------------------------------------
+  # Force Update All Domains
+  # Usage: docker compose run --rm force
+  # ---------------------------------------------------------------------------
+  force:
+    image: apertodns/cli:latest
+    container_name: apertodns-force
+    volumes:
+      - apertodns_config:/root/.config/apertodns
+    command: ["--force"]
+    # Security hardening
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ---------------------------------------------------------------------------
+  # Show Dashboard
+  # Usage: docker compose run --rm dashboard
+  # ---------------------------------------------------------------------------
+  dashboard:
+    image: apertodns/cli:latest
+    container_name: apertodns-dashboard
+    volumes:
+      - apertodns_config:/root/.config/apertodns
+    command: ["--dashboard"]
+    # Security hardening
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ---------------------------------------------------------------------------
+  # JSON Output (for scripting)
+  # Usage: docker compose run --rm json
+  # ---------------------------------------------------------------------------
+  json:
+    image: apertodns/cli:latest
+    container_name: apertodns-json
+    volumes:
+      - apertodns_config:/root/.config/apertodns
+    command: ["--domains", "--json"]
+    # Security hardening
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ---------------------------------------------------------------------------
+  # Using API Key (no volume/setup needed)
+  # Usage: APERTODNS_API_KEY=ak_xxx docker compose run --rm api
+  # ---------------------------------------------------------------------------
+  api:
+    image: apertodns/cli:latest
+    container_name: apertodns-api
+    environment:
+      - APERTODNS_API_KEY=${APERTODNS_API_KEY}
+    command: ["--domains"]
+    # Security hardening
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # ---------------------------------------------------------------------------
+  # Generic CLI Access (pass any arguments)
+  # Usage: docker compose run --rm cli --help
+  # Usage: docker compose run --rm cli --force --verbose
+  # ---------------------------------------------------------------------------
+  cli:
+    image: apertodns/cli:latest
+    container_name: apertodns-cli
+    stdin_open: true
+    tty: true
+    volumes:
+      - apertodns_config:/root/.config/apertodns
+    entrypoint: ["apertodns"]
+    # Security hardening
+    security_opt:
+      - no-new-privileges:true
+
+# ---------------------------------------------------------------------------
+# Named Volumes for config persistence
+# ---------------------------------------------------------------------------
+volumes:
+  apertodns_config:
+    name: apertodns_config
